@@ -9,39 +9,52 @@ class Search extends React.Component {
     searchedBooks: [],
   };
 
+  async fetchAllBooks() {
+    await BooksAPI.getAll().then((books) => {
+      this.setState({
+        books,
+      });
+    });
+  }
+
+  componentDidMount() {
+    this.fetchAllBooks();
+  }
+
   updateShelf = async (newBook, shelf) => {
     await BooksAPI.update(newBook, shelf).then((res) => {
       newBook.shelf = shelf;
     });
   };
 
-  search = (query) => {
+  async search(query) {
     if (query) {
-      BooksAPI.search(query)
-        .then((books) => {
-          let searchResults = [];
-          if (!books.error) {
-            for (let book of books) {
-              if (book.authors) searchResults.push(book);
-              else {
-                book.authors = "Unknown Author";
-                searchResults.push(book);
+      await BooksAPI.search(query)
+        .then((searchedBooks) => {
+          let searchResult = [];
+          if (!searchedBooks.error) {
+            for (let searchedBook of searchedBooks) {
+              for (book of this.state.books) {
+                if (!book.authors) {
+                  book.authors = "Unknown Author";
+                }
+                if (searchedBook.id === book.id) {
+                  searchedBook.shelf = book.shelf;
+                }
               }
+              searchResult.push(searchedBook);
             }
-            return searchResults;
           }
+          return searchResult;
         })
         .then((searchedBooks) => {
-          this.setState((prvState) => ({ searchedBooks }));
+          this.setState((prevSearchedBooks) => ({ searchedBooks }));
         })
-
-        .catch((err) => {
-          this.setState({ searchedBooks: [] });
-        });
+        .catch((err) => alert(err.message));
     } else {
       this.setState({ searchedBooks: [] });
     }
-  };
+  }
 
   render() {
     return (
@@ -67,7 +80,7 @@ class Search extends React.Component {
                 </li>
               ))
             ) : (
-              <span></span>
+              <span />
             )}
           </ol>
         </div>
